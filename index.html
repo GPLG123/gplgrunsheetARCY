@@ -66,11 +66,11 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 </select>
 <input type="text" id="manualLocation" class="short" placeholder="Enter location" style="display:none; margin-bottom:10px;">
 
-<label>Booking Time:</label>
-<input type="time" id="booking" class="short">
-
 <label>Arrival Time:</label>
 <input type="time" id="arrival" class="short">
+
+<label>Booking Time:</label>
+<input type="time" id="booking" class="short">
 
 <label>Loading:</label>
 <input type="time" id="loading" class="short">
@@ -101,8 +101,8 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 <th>Vehicle</th>
 <th>Run</th>
 <th>Collection and Delivery Point</th>
-<th>Booking Time</th>
 <th>Arrival Time</th>
+<th>Booking Time</th>
 <th>Loading</th>
 <th>Departure</th>
 <th>Comment</th>
@@ -115,7 +115,7 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // Auto-skip timp doar la Enter/Tab
-const timeFields = ['booking','arrival','loading','departure'];
+const timeFields = ['arrival','booking','loading','departure'];
 timeFields.forEach((id,index)=>{
     document.getElementById(id).addEventListener('keydown', function(e){
         if(e.key === "Enter" || e.key === "Tab"){
@@ -165,8 +165,8 @@ window.onload=function(){
 
     document.getElementById('filterDate').value = todayStr;
 
-    if(!document.getElementById('booking').value) document.getElementById('booking').value="08:00";
     if(!document.getElementById('arrival').value) document.getElementById('arrival').value="08:30";
+    if(!document.getElementById('booking').value) document.getElementById('booking').value="08:00";
     if(!document.getElementById('loading').value) document.getElementById('loading').value="08:45";
     if(!document.getElementById('departure').value) document.getElementById('departure').value="09:00";
 
@@ -239,7 +239,7 @@ function addEntry(){
     if(!dailyData[date]) dailyData[date]={};
     if(!dailyData[date][run]) dailyData[date][run]=[];
 
-    const entry={date,vehicle,run,location,booking,arrival,loading,departure,comment};
+    const entry={date,vehicle,run,location,arrival,booking,loading,departure,comment};
     dailyData[date][run].push(entry);
     localStorage.setItem('dailyData',JSON.stringify(dailyData));
 
