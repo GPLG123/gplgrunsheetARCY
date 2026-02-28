@@ -22,7 +22,7 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 <h2>Driver Daily Report</h2>
 
 <div id="alertBlock" style="display:none;">
-⚠️ Cannot start new day: yesterday's report not generated!
+⚠️ Cannot start new day: previous day's report not generated!
 </div>
 
 <label>Vehicle:</label>
@@ -32,7 +32,7 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 <input type="number" id="run" class="short">
 
 <label>Date:</label>
-<input type="date" id="date" class="short">
+<input type="date" id="date" class="short" value="">
 
 <hr>
 
@@ -83,6 +83,11 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 
 <button onclick="addEntry()">Add Location</button>
 
+<hr>
+
+<label>Select Date to View / Generate Excel:</label>
+<input type="date" id="filterDate" class="short" value="">
+
 <div id="alertExcel">
 ⚠️ Important: After adding all locations, make sure to click <strong>Send Excel</strong> to save your daily report locally! ⚠️
 </div>
@@ -109,7 +114,7 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-// auto-skip timp doar la Enter sau Tab
+// Auto-skip timp doar la Enter/Tab
 const timeFields = ['booking','arrival','loading','departure'];
 timeFields.forEach((id,index)=>{
     document.getElementById(id).addEventListener('keydown', function(e){
@@ -131,11 +136,14 @@ let todayStr = new Date().toISOString().split('T')[0];
 let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
 let generatedDays = JSON.parse(localStorage.getItem('generatedDays')||"{}");
 
-// check yesterday
-let yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
-let yesterdayStr = yesterday.toISOString().split('T')[0];
+// Check yesterday
 function checkYesterday(){
-    if(dailyData[yesterdayStr] && !generatedDays[yesterdayStr]){
+    let selectedDate = document.getElementById('filterDate').value || todayStr;
+    const prevDate = new Date(selectedDate);
+    prevDate.setDate(prevDate.getDate()-1);
+    const prevDateStr = prevDate.toISOString().split('T')[0];
+
+    if(dailyData[prevDateStr] && !generatedDays[prevDateStr]){
         document.getElementById("alertBlock").style.display="block";
         document.querySelectorAll('input, select, button').forEach(el=>{
             if(!el.innerText.includes("Send Excel")) el.disabled=true;
@@ -149,29 +157,53 @@ function checkYesterday(){
 }
 checkYesterday();
 
-// load saved global values
+// Load saved global values
 window.onload=function(){
     if(localStorage.getItem('vehicle')) document.getElementById('vehicle').value=localStorage.getItem('vehicle');
     if(localStorage.getItem('run')) document.getElementById('run').value=localStorage.getItem('run');
     if(localStorage.getItem('date')) document.getElementById('date').value=localStorage.getItem('date');
+
+    document.getElementById('filterDate').value = todayStr;
 
     if(!document.getElementById('booking').value) document.getElementById('booking').value="08:00";
     if(!document.getElementById('arrival').value) document.getElementById('arrival').value="08:30";
     if(!document.getElementById('loading').value) document.getElementById('loading').value="08:45";
     if(!document.getElementById('departure').value) document.getElementById('departure').value="09:00";
 
-    loadTable();
+    loadTable(todayStr);
 };
 
+// Load table filtered by date
 function getRunKey(){ return document.getElementById('run').value; }
 
-function loadTable(){
+document.getElementById('filterDate').addEventListener('change', function(){
+    const selectedDate = this.value;
+    if(!selectedDate) return;
+
+    // Verifică ziua precedentă
+    const prevDate = new Date(selectedDate);
+    prevDate.setDate(prevDate.getDate()-1);
+    const prevDateStr = prevDate.toISOString().split('T')[0];
+
+    if(dailyData[prevDateStr] && !generatedDays[prevDateStr]){
+        alert("Cannot proceed: previous day's report not generated!");
+        this.value = todayStr;
+        checkYesterday();
+        return;
+    }
+
+    loadTable(selectedDate);
+});
+
+function loadTable(dateForTable = todayStr){
     const tbody=document.getElementById('reportTable').getElementsByTagName('tbody')[0];
     tbody.innerHTML="";
     const runKey=getRunKey();
-    if(!runKey) return;
-    if(dailyData[todayStr] && dailyData[todayStr][runKey]){
-        dailyData[todayStr][runKey].forEach(entry=>{
+    if(!dailyData[dateForTable]) return;
+
+    Object.keys(dailyData[dateForTable]).forEach(run=>{
+        if(runKey && run !== runKey) return;
+        dailyData[dateForTable][run].forEach(entry=>{
             const row=tbody.insertRow();
             Object.values(entry).forEach(v=>{
                 const cell=row.insertCell();
@@ -179,7 +211,7 @@ function loadTable(){
                 cell.contentEditable=true;
             });
         });
-    }
+    });
 }
 
 function addEntry(){
@@ -200,14 +232,14 @@ function addEntry(){
     localStorage.setItem('run',run);
     localStorage.setItem('date',date);
 
-    if(!dailyData[todayStr]) dailyData[todayStr]={};
-    if(!dailyData[todayStr][run]) dailyData[todayStr][run]=[];
+    if(!dailyData[date]) dailyData[date]={};
+    if(!dailyData[date][run]) dailyData[date][run]=[];
 
     const entry={date,vehicle,run,location,booking,arrival,loading,departure,comment};
-    dailyData[todayStr][run].push(entry);
+    dailyData[date][run].push(entry);
     localStorage.setItem('dailyData',JSON.stringify(dailyData));
 
-    loadTable();
+    loadTable(document.getElementById('filterDate').value || todayStr);
 
     document.getElementById("location").value="";
     document.getElementById("manualLocation").value="";
@@ -217,23 +249,18 @@ function addEntry(){
 }
 
 function sendExcel(){
-    const tbody=document.getElementById('reportTable').getElementsByTagName('tbody')[0];
-    const rows=tbody.getElementsByTagName('tr');
-    const data=[];
-    for(let r=0;r<rows.length;r++){
-        const cells=rows[r].getElementsByTagName('td');
-        const rowData={};
-        rowData['Date']=cells[0].innerText;
-        rowData['Vehicle']=cells[1].innerText;
-        rowData['Run']=cells[2].innerText;
-        rowData['Collection and Delivery Point']=cells[3].innerText;
-        rowData['Booking Time']=cells[4].innerText;
-        rowData['Arrival Time']=cells[5].innerText;
-        rowData['Loading']=cells[6].innerText;
-        rowData['Departure']=cells[7].innerText;
-        rowData['Comment']=cells[8].innerText;
-        data.push(rowData);
+    const selectedDate = document.getElementById('filterDate').value || todayStr;
+    if(!dailyData[selectedDate]){
+        alert("No data for selected date!");
+        return;
     }
+
+    const data=[];
+    Object.values(dailyData[selectedDate]).forEach(runEntries=>{
+        runEntries.forEach(entry=>{
+            data.push(entry);
+        });
+    });
 
     const wb=XLSX.utils.book_new();
     const ws=XLSX.utils.json_to_sheet(data);
@@ -245,17 +272,15 @@ function sendExcel(){
 
     const a=document.createElement('a');
     a.href=url;
-    a.download=`DriverDailyReport_Run${document.getElementById('run').value}_${document.getElementById('date').value}.xlsx`;
+    a.download=`DriverDailyReport_${selectedDate}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
 
-    generatedDays[todayStr]=true;
+    generatedDays[selectedDate]=true;
     localStorage.setItem('generatedDays',JSON.stringify(generatedDays));
     checkYesterday();
-    alert("Excel generated! You can now quickly attach it to an email.");
+    alert("Excel generated for " + selectedDate);
 }
 </script>
-</body>
-</html>
 </body>
 </html>
