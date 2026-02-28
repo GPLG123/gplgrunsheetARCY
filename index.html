@@ -81,6 +81,14 @@
 
 <hr>
 
+<label for="specification">Collection and Delivery Specification:</label>
+<select id="specification" required>
+  <option value="">Select specification</option>
+  <option value="Collection Only">Collection Only</option>
+  <option value="Delivery Only">Delivery Only</option>
+  <option value="Collection and Delivery">Collection and Delivery</option>
+</select>
+
 <label for="location">Collection and Delivery Point:</label>
 <select id="location" required>
   <option value="">Select</option>
@@ -148,6 +156,7 @@
       <th>Date</th>
       <th>Vehicle</th>
       <th>Run</th>
+      <th>Collection and Delivery Specification</th>
       <th>Collection and Delivery Point</th>
       <th>Arrival Time</th>
       <th>Booking Time</th>
@@ -170,7 +179,6 @@
     }
   });
 
-  // Storage initialization
   let todayStr = new Date().toISOString().split('T')[0];
   let dailyData = JSON.parse(localStorage.getItem('dailyData') || "{}");
   let generatedDays = JSON.parse(localStorage.getItem('generatedDays') || "{}");
@@ -180,8 +188,8 @@
     if(localStorage.getItem('vehicle')) document.getElementById('vehicle').value = localStorage.getItem('vehicle');
     if(localStorage.getItem('run')) document.getElementById('run').value = localStorage.getItem('run');
     if(localStorage.getItem('date')) document.getElementById('date').value = localStorage.getItem('date');
+    if(localStorage.getItem('specification')) document.getElementById('specification').value = localStorage.getItem('specification');
 
-    // Set default times if empty
     if(!document.getElementById('arrival').value) document.getElementById('arrival').value = "08:30";
     if(!document.getElementById('booking').value) document.getElementById('booking').value = "08:00";
     if(!document.getElementById('loading').value) document.getElementById('loading').value = "08:45";
@@ -192,7 +200,6 @@
     loadTable(todayStr);
   };
 
-  // Update filter dates dropdown
   function populateFilterDate() {
     const filterDate = document.getElementById('filterDate');
     const dateSet = new Set();
@@ -216,7 +223,6 @@
     filterDate.max = dates[dates.length - 1];
   }
 
-  // Load table for selected date and run
   function getRunKey() {
     return document.getElementById('run').value.trim();
   }
@@ -234,54 +240,55 @@
       dailyData[dateForTable][run].forEach(entry => {
         const row = tbody.insertRow();
 
-        // date, vehicle, run
+        // Date (not editable)
         let cell = row.insertCell();
         cell.textContent = entry.date;
-        cell.contentEditable = true;
+        cell.contentEditable = false;
 
+        // Vehicle (editable)
         cell = row.insertCell();
         cell.textContent = entry.vehicle;
         cell.contentEditable = true;
 
+        // Run (editable)
         cell = row.insertCell();
         cell.textContent = entry.run;
         cell.contentEditable = true;
 
-        // location (location key or manual text)
+        // Collection and Delivery Specification (editable)
         cell = row.insertCell();
-        if(entry.location) {
-          cell.textContent = entry.location;
-          cell.contentEditable = true;
-        } else {
-          cell.textContent = "";
-        }
+        cell.textContent = entry.specification || "";
+        cell.contentEditable = true;
 
-        // times and comment
+        // Collection and Delivery Point (editable)
+        cell = row.insertCell();
+        cell.textContent = entry.location || "";
+        cell.contentEditable = true;
+
+        // Times and comment (all editable)
         ['arrival', 'booking', 'loading', 'departure', 'comment'].forEach(field => {
           cell = row.insertCell();
           cell.textContent = entry[field] || "";
-          cell.contentEditable = field !== 'comment' ? true : true; // editable
+          cell.contentEditable = true;
         });
       });
     });
   }
 
-  // When filter date changes, reload table
   document.getElementById('filterDate').addEventListener('change', function() {
     if(this.value) loadTable(this.value);
   });
 
-  // When run changes, reload table with new run filter
   document.getElementById('run').addEventListener('input', function() {
     const filterDate = document.getElementById('filterDate').value || todayStr;
     if(filterDate) loadTable(filterDate);
   });
 
-  // Add new entry to storage and table
   document.getElementById('addEntryBtn').addEventListener('click', function() {
     const vehicle = document.getElementById('vehicle').value.trim();
     const run = document.getElementById('run').value.trim();
     const date = document.getElementById('date').value;
+    const specification = document.getElementById('specification').value;
     let locationSelect = document.getElementById('location').value;
     let location = locationSelect === "manual" ? document.getElementById('manualLocation').value.trim() : locationSelect;
     const arrival = document.getElementById('arrival').value;
@@ -290,40 +297,37 @@
     const departure = document.getElementById('departure').value;
     const comment = document.getElementById('comment').value.trim();
 
-    if(!vehicle || !run || !date || !location) {
+    if(!vehicle || !run || !date || !location || !specification) {
       alert("Please fill all required fields!");
       return;
     }
 
-    // Save vehicle, run, date persistently
     localStorage.setItem('vehicle', vehicle);
     localStorage.setItem('run', run);
     localStorage.setItem('date', date);
+    localStorage.setItem('specification', specification);
 
     if(!dailyData[date]) dailyData[date] = {};
     if(!dailyData[date][run]) dailyData[date][run] = [];
 
-    // Save entry
-    const entry = {date, vehicle, run, location, arrival, booking, loading, departure, comment};
+    const entry = {date, vehicle, run, specification, location, arrival, booking, loading, departure, comment};
     dailyData[date][run].push(entry);
 
     localStorage.setItem('dailyData', JSON.stringify(dailyData));
 
-    // Clear inputs except vehicle and run (optional)
     document.getElementById('location').value = "";
     document.getElementById('manualLocation').value = "";
     document.getElementById('manualLocation').style.display = 'none';
     ['arrival','booking','loading','departure'].forEach(id => document.getElementById(id).value = "");
     document.getElementById('comment').value = "";
+    document.getElementById('specification').value = "";
 
     populateFilterDate();
 
-    // Reload table for current filter date or today if empty
     const filterDate = document.getElementById('filterDate').value || todayStr;
     loadTable(filterDate);
   });
 
-  // Export table to CSV (for Excel)
   document.getElementById('sendExcelBtn').addEventListener('click', function() {
     const filterDate = document.getElementById('filterDate').value;
     if(!filterDate || !dailyData[filterDate]) {
@@ -334,14 +338,15 @@
     const runKey = getRunKey();
 
     let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Date,Vehicle,Run,Collection and Delivery Point,Arrival Time,Booking Time,Loading,Departure,Comment\n";
+    csvContent += "Date,Vehicle,Run,Collection and Delivery Specification,Collection and Delivery Point,Arrival Time,Booking Time,Loading,Departure,Comment\n";
 
     dailyData[filterDate][runKey]?.forEach(entry => {
       const row = [
         entry.date,
         entry.vehicle,
         entry.run,
-        entry.location,
+        entry.specification || "",
+        entry.location || "",
         entry.arrival || "",
         entry.booking || "",
         entry.loading || "",
