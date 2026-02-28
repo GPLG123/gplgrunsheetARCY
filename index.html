@@ -1,164 +1,192 @@
-index.html‎
-+46
--32
-Lines changed: 46 additions & 32 deletions
-Original file line number	Diff line number	Diff line change
-@@ -26,9 +26,6 @@ <h2>Driver Daily Report</h2>
-<label>Run:</label>
-<input type="text" id="run" class="short" placeholder="Run #">
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Driver Daily Report</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  }
+  label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+  }
+  input[type="text"],
+  input[type="time"],
+  select,
+  textarea,
+  input[type="date"] {
+    width: 200px;
+    padding: 6px;
+    margin-top: 4px;
+  }
+  textarea {
+    width: 100%;
+    height: 40px;
+  }
+  button {
+    margin-top: 15px;
+    padding: 8px 12px;
+  }
+  table {
+    margin-top: 20px;
+    border-collapse: collapse;
+    width: 100%;
+  }
+  th,
+  td {
+    border: 1px solid #888;
+    padding: 6px 8px;
+    text-align: center;
+  }
+  th {
+    background-color: #eee;
+  }
+  #warning {
+    margin-top: 15px;
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    padding: 10px;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
 
-<label>Date:</label>
-<input type="date" id="date" class="short" value="">
-<hr>
+<h2>Driver Daily Report</h2>
 
-<label>Collection and Delivery Point:</label>
-@@ -81,7 +78,7 @@ <h2>Driver Daily Report</h2>
-<hr>
+<form id="driverReportForm" onsubmit="return false;">
+  <label for="vehicle">Vehicle:</label>
+  <input type="text" id="vehicle" value="ln68zng" readonly />
 
-<label>Select Date to View / Generate Excel:</label>
-<input type="date" id="filterDate" class="short" value="">
-<input type="date" id="filterDate" class="short">
+  <label for="run">Run:</label>
+  <input type="text" id="run" value="4" readonly />
 
-<div id="alertExcel">
-⚠️ Important: After adding all locations, make sure to click <strong>Send Excel</strong> to save your daily report locally! ⚠️
-@@ -127,41 +124,57 @@ <h2>Driver Daily Report</h2>
-}
+  <label for="collectionPoint">Collection and Delivery Point:</label>
+  <select id="collectionPoint" required>
+    <option value="">Select</option>
+    <option value="AC">AC</option>
+    <option value="BA WC">BA WC</option>
+    <option value="Dnata CX">Dnata CX</option>
+    <option value="BREAK">BREAK</option>
+    <option value="LG">LG</option>
+    <option value="LANDMARK GLOBAL">LANDMARK GLOBAL</option>
+  </select>
 
-// ===== Storage =====
-let todayStr = new Date().toISOString().split('T')[0];
-let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
-let generatedDays = JSON.parse(localStorage.getItem('generatedDays')||"{}");
+  <label for="arrivalTime">Arrival Time:</label>
+  <input type="time" id="arrivalTime" value="" />
 
-// Load saved global values
-window.onload=function(){
-    if(localStorage.getItem('vehicle')) document.getElementById('vehicle').value=localStorage.getItem('vehicle');
-    if(localStorage.getItem('run')) document.getElementById('run').value=localStorage.getItem('run');
-    if(localStorage.getItem('date')) document.getElementById('date').value=localStorage.getItem('date');
-    document.getElementById('filterDate').value = todayStr;
+  <label for="bookingTime">Booking Time:</label>
+  <input type="time" id="bookingTime" value="" />
 
-    if(!document.getElementById('arrival').value) document.getElementById('arrival').value="08:30";
-    if(!document.getElementById('booking').value) document.getElementById('booking').value="08:00";
-    if(!document.getElementById('loading').value) document.getElementById('loading').value="08:45";
-    if(!document.getElementById('departure').value) document.getElementById('departure').value="09:00";
-    loadTable(todayStr);
-    populateFilterDate();
-    const today = new Date().toISOString().split('T')[0];
-    loadTable(today);
-};
+  <label for="loading">Loading:</label>
+  <input type="time" id="loading" value="" />
 
-// Load table filtered by date + run
-function getRunKey(){ return document.getElementById('run').value; }
+  <label for="departure">Departure:</label>
+  <input type="time" id="departure" value="" />
 
-function populateFilterDate() {
-    const filterDate = document.getElementById('filterDate');
-    const dateSet = new Set();
-    Object.keys(dailyData).forEach(day => {
-        Object.keys(dailyData[day]).forEach(run=>{
-            dailyData[day][run].forEach(entry=>{
-                dateSet.add(entry.date);
-            });
-        });
-    });
-    const dates = Array.from(dateSet).sort();
-    if(dates.length === 0){
-        filterDate.value = "";
-        filterDate.placeholder = "No data available";
-        return;
-    }
-    filterDate.value = dates[0];
-    filterDate.min = dates[0];
-    filterDate.max = dates[dates.length-1];
-}
-document.getElementById('filterDate').addEventListener('change', function(){
-    const selectedDate = this.value;
-    if(!selectedDate) return;
-    loadTable(selectedDate);
-});
+  <label for="comment">Comment:</label>
+  <textarea id="comment" placeholder="Add comment"></textarea>
 
-document.getElementById('run').addEventListener('input', function(){
-    const selectedDate = document.getElementById('filterDate').value || todayStr;
-    const selectedDate = document.getElementById('filterDate').value;
-    if(!selectedDate) return;
-    loadTable(selectedDate);
-});
+  <button id="addLocation" type="button">Add Location</button>
 
-function loadTable(dateForTable = todayStr){
-function loadTable(dateForTable){
-    const tbody = document.getElementById('reportTable').getElementsByTagName('tbody')[0];
-    tbody.innerHTML = "";
-    const runKey = getRunKey();
-@@ -171,10 +184,10 @@ <h2>Driver Daily Report</h2>
-        if(runKey && run !== runKey) return;
-        dailyData[dateForTable][run].forEach(entry=>{
-            const row = tbody.insertRow();
-            Object.values(entry).forEach(v=>{
-            Object.keys(entry).forEach(key=>{
-                const cell = row.insertCell();
-                cell.innerText = v;
-                cell.contentEditable = true;
-                cell.innerText = entry[key];
-                if(key!=="date") cell.contentEditable = true;
-            });
-        });
-    });
-@@ -183,7 +196,6 @@ <h2>Driver Daily Report</h2>
-function addEntry(){
-    const vehicle=document.getElementById('vehicle').value;
-    const run=document.getElementById('run').value;
-    const date=document.getElementById('date').value;
-    const locationSelect=document.getElementById('location').value;
-    const location=locationSelect==="manual"?document.getElementById('manualLocation').value:locationSelect;
-    const booking=document.getElementById('booking').value;
-@@ -192,31 +204,35 @@ <h2>Driver Daily Report</h2>
-    const departure=document.getElementById('departure').value;
-    const comment=document.getElementById('comment').value;
+  <label for="dateSelect">Select Date to View / Generate Excel:</label>
+  <input type="date" id="dateSelect" value="2026-02-10" />
 
-    if(!vehicle||!run||!date||!location){alert("Please fill all required fields!"); return;}
-    if(!vehicle||!run||!location){alert("Please fill all required fields!"); return;}
-    const today = new Date().toISOString().split('T')[0];
+  <div id="warning">
+    ⚠️ Important: After adding all locations, make sure to click <strong>Send Excel</strong> to save your daily report locally! ⚠️
+  </div>
 
-    localStorage.setItem('vehicle',vehicle);
-    localStorage.setItem('run',run);
-    localStorage.setItem('date',date);
+  <button id="sendExcel" type="button">Send Excel</button>
+</form>
 
-    if(!dailyData[date]) dailyData[date]={};
-    if(!dailyData[date][run]) dailyData[date][run]=[];
-    if(!dailyData[today]) dailyData[today]={};
-    if(!dailyData[today][run]) dailyData[today][run]=[];
+<table id="reportTable" aria-label="Driver Daily Report Table">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Vehicle</th>
+      <th>Run</th>
+      <th>Collection and Delivery Point</th>
+      <th>Arrival Time</th>
+      <th>Booking Time</th>
+      <th>Loading</th>
+      <th>Departure</th>
+      <th>Comment</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>2026-02-10</td>
+      <td>ln68zng</td>
+      <td>4</td>
+      <td>AC</td>
+      <td>08:30</td>
+      <td>09:02</td>
+      <td>00:45</td>
+      <td>09:00</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>2026-02-11</td>
+      <td>ln68zng</td>
+      <td>4</td>
+      <td>BA WC</td>
+      <td>08:30</td>
+      <td>07:20</td>
+      <td>10:00</td>
+      <td>10:30</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>2026-02-12</td>
+      <td>ln68zng</td>
+      <td>4</td>
+      <td>AC</td>
+      <td>12:00</td>
+      <td>12:30</td>
+      <td>13:00</td>
+      <td>14:00</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>2026-02-28</td>
+      <td>ln68zng</td>
+      <td>4</td>
+      <td>Dnata CX</td>
+      <td>08:30</td>
+      <td>09:32</td>
+      <td>11:32</td>
+      <td>12:00</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>2026-02-28</td>
+      <td>ln68zng</td>
+      <td>4</td>
+      <td>BREAK</td>
+      <td>14:15</td>
+      <td>15:00</td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>2026-02-28</td>
+      <td>ln68zng</td>
+      <td>4</td>
+      <td>BREAK</td>
+      <td>12:00</td>
+      <td>15:00</td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
 
-    const entry={date,vehicle,run,location,arrival,booking,loading,departure,comment};
-    dailyData[date][run].push(entry);
-    const entry={date:today,vehicle,run,location,arrival,booking,loading,departure,comment};
-    dailyData[today][run].push(entry);
-    localStorage.setItem('dailyData',JSON.stringify(dailyData));
-
-    loadTable(document.getElementById('filterDate').value || todayStr);
-    const filterDate = document.getElementById('filterDate').value || today;
-    loadTable(filterDate);
-
-    document.getElementById("location").value="";
-    document.getElementById("manualLocation").value="";
-    document.getElementById("manualLocation").style.display="none";
-    timeFields.forEach(f=>document.getElementById(f).value="");
-    document.getElementById("comment").value="";
-    populateFilterDate();
-}
-
-function sendExcel(){
-    const selectedDate = document.getElementById('filterDate').value || todayStr;
-    if(!dailyData[selectedDate]){
-    const selectedDate = document.getElementById('filterDate').value;
-    if(!selectedDate || !dailyData[selectedDate]){
-        alert("No data for selected date!");
-        return;
-    }
-@@ -246,8 +262,6 @@ <h2>Driver Daily Report</h2>
-    a.click();
-    URL.revokeObjectURL(url);
-
-    generatedDays[selectedDate]=true;
-    localStorage.setItem('generatedDays',JSON.stringify(generatedDays));
-    alert("Excel generated for " + selectedDate);
-}
-</script>
-
+</body>
+</html>
