@@ -1,269 +1,99 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ro">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Driver Daily Report</title>
-<style>
-body { font-family: Arial, sans-serif; margin: 20px; }
-label { font-weight: bold; display: block; margin-top: 10px; }
-input, select { margin-bottom: 10px; padding: 5px; }
-input.short { width: 120px; }
-input.comment { width: 100%; }
-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-th, td { border: 1px solid #000; padding: 8px; text-align: center; }
-#alertExcel { background-color: #ffcccc; color: #990000; border: 2px solid #990000; padding: 15px; font-size: 18px; text-align: center; margin: 15px 0; font-weight: bold; }
-button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPLG Run Sheet</title>
+
+  <!-- Stil general -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    h1, h2, h3 {
+      color: #333;
+    }
+
+    /* Stil drag & drop Collection & Delivery Specification */
+    #taskList {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    #taskList li {
+      padding: 8px 12px;
+      margin: 4px;
+      background-color: #f0f0f0;
+      border: 1px solid #ccc;
+      cursor: grab;
+    }
+
+    #dropZone {
+      margin-top: 20px;
+      padding: 20px;
+      border: 2px dashed #aaa;
+      min-height: 50px;
+    }
+
+    /* Opțional: stil nou pentru item-urile drop-uite */
+    .droppedItem {
+      padding: 6px 10px;
+      margin: 4px;
+      background-color: #d0ffd0;
+      border: 1px solid #0c0;
+    }
+  </style>
 </head>
 <body>
 
-<h2>Driver Daily Report</h2>
+  <h1>GPLG Run Sheet</h1>
 
-<label>Vehicle:</label>
-<input type="text" id="vehicle" class="short" placeholder="Vehicle #">
+  <!-- Alte secțiuni ale paginii tale aici -->
+  <p>Secțiuni existente...</p>
 
-<label>Run:</label>
-<input type="text" id="run" class="short" placeholder="Run #">
+  <!-- Collection & Delivery Specification Drag & Drop -->
+  <div id="dragDropContainer">
+    <h3>Collection & Delivery Specification</h3>
+    <ul id="taskList">
+      <li draggable="true" class="draggable">Collection</li>
+      <li draggable="true" class="draggable">Delivery</li>
+    </ul>
+  </div>
 
-<hr>
+  <div id="dropZone">
+    <h3>Drop Here</h3>
+  </div>
 
-<label>Collection and Delivery Point:</label>
-<select id="location" onchange="checkManual()" class="short">
-    <option value="">Select</option>
-    <option>AC</option>
-    <option>ASC</option>
-    <option>BA WC</option>
-    <option>BA WC 2nd</option>
-    <option>Ba XPS</option>
-    <option>DAI</option>
-    <option>Dnata CP</option>
-    <option>Dnata CX</option>
-    <option>Dnata U1</option>
-    <option>Dnata U2</option>
-    <option>Dnata U3</option>
-    <option>Dnata VS/Delta</option>
-    <option>HCH</option>
-    <option>HCH Horton</option>
-    <option>JL</option>
-    <option>MW</option>
-    <option>Scylla Rd</option>
-    <option>Scylla U1</option>
-    <option>WFS 549</option>
-    <option>WFS 550</option>
-    <option>ECMS</option>
-    <option>Swissport</option>
-    <option>BREAK</option>
-    <option value="manual">Other (Manual)</option>
-</select>
-<input type="text" id="manualLocation" class="short" placeholder="Enter location" style="display:none; margin-bottom:10px;">
+  <!-- Script drag & drop -->
+  <script>
+    const draggables = document.querySelectorAll('.draggable');
+    const dropZone = document.getElementById('dropZone');
 
-<label>Arrival Time:</label>
-<input type="time" id="arrival" class="short">
-
-<label>Booking Time:</label>
-<input type="time" id="booking" class="short">
-
-<label>Loading:</label>
-<input type="time" id="loading" class="short">
-
-<label>Departure:</label>
-<input type="time" id="departure" class="short">
-
-<label>Comment:</label>
-<input type="text" id="comment" class="comment" placeholder="Add comment">
-
-<button onclick="addEntry()">Add Location</button>
-
-<hr>
-
-<label>Select Date to View / Generate Excel:</label>
-<input type="date" id="filterDate" class="short">
-
-<div id="alertExcel">
-⚠️ Important: After adding all locations, make sure to click <strong>Send Excel</strong> to save your daily report locally! ⚠️
-</div>
-
-<button onclick="sendExcel()">Send Excel</button>
-
-<table id="reportTable">
-<thead>
-<tr>
-<th>Date</th>
-<th>Vehicle</th>
-<th>Run</th>
-<th>Collection and Delivery Point</th>
-<th>Arrival Time</th>
-<th>Booking Time</th>
-<th>Loading</th>
-<th>Departure</th>
-<th>Comment</th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
-// Auto-skip timp doar la Enter/Tab
-const timeFields = ['arrival','booking','loading','departure'];
-timeFields.forEach((id,index)=>{
-    document.getElementById(id).addEventListener('keydown', function(e){
-        if(e.key === "Enter" || e.key === "Tab"){
-            e.preventDefault();
-            const next=timeFields[index+1];
-            if(next) document.getElementById(next).focus();
-        }
-    });
-});
-
-function checkManual(){
-    const loc=document.getElementById("location").value;
-    document.getElementById("manualLocation").style.display=loc==="manual"?"block":"none";
-}
-
-// ===== Storage =====
-let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
-
-// Load saved global values
-window.onload=function(){
-    if(localStorage.getItem('vehicle')) document.getElementById('vehicle').value=localStorage.getItem('vehicle');
-    if(localStorage.getItem('run')) document.getElementById('run').value=localStorage.getItem('run');
-
-    populateFilterDate();
-    const today = new Date().toISOString().split('T')[0];
-    loadTable(today);
-};
-
-// Load table filtered by date + run
-function getRunKey(){ return document.getElementById('run').value; }
-
-function populateFilterDate() {
-    const filterDate = document.getElementById('filterDate');
-    const dateSet = new Set();
-    Object.keys(dailyData).forEach(day => {
-        Object.keys(dailyData[day]).forEach(run=>{
-            dailyData[day][run].forEach(entry=>{
-                dateSet.add(entry.date);
-            });
-        });
+    draggables.forEach(item => {
+      item.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', e.target.innerText);
+      });
     });
 
-    const dates = Array.from(dateSet).sort();
-    if(dates.length === 0){
-        filterDate.value = "";
-        filterDate.placeholder = "No data available";
-        return;
-    }
-
-    filterDate.value = dates[0];
-    filterDate.min = dates[0];
-    filterDate.max = dates[dates.length-1];
-}
-
-document.getElementById('filterDate').addEventListener('change', function(){
-    const selectedDate = this.value;
-    if(!selectedDate) return;
-    loadTable(selectedDate);
-});
-
-document.getElementById('run').addEventListener('input', function(){
-    const selectedDate = document.getElementById('filterDate').value;
-    if(!selectedDate) return;
-    loadTable(selectedDate);
-});
-
-function loadTable(dateForTable){
-    const tbody = document.getElementById('reportTable').getElementsByTagName('tbody')[0];
-    tbody.innerHTML = "";
-    const runKey = getRunKey();
-    if(!dailyData[dateForTable]) return;
-
-    Object.keys(dailyData[dateForTable]).forEach(run=>{
-        if(runKey && run !== runKey) return;
-        dailyData[dateForTable][run].forEach(entry=>{
-            const row = tbody.insertRow();
-            Object.keys(entry).forEach(key=>{
-                const cell = row.insertCell();
-                cell.innerText = entry[key];
-                if(key!=="date") cell.contentEditable = true;
-            });
-        });
-    });
-}
-
-function addEntry(){
-    const vehicle=document.getElementById('vehicle').value;
-    const run=document.getElementById('run').value;
-    const locationSelect=document.getElementById('location').value;
-    const location=locationSelect==="manual"?document.getElementById('manualLocation').value:locationSelect;
-    const booking=document.getElementById('booking').value;
-    const arrival=document.getElementById('arrival').value;
-    const loading=document.getElementById('loading').value;
-    const departure=document.getElementById('departure').value;
-    const comment=document.getElementById('comment').value;
-
-    if(!vehicle||!run||!location){alert("Please fill all required fields!"); return;}
-
-    const today = new Date().toISOString().split('T')[0];
-
-    localStorage.setItem('vehicle',vehicle);
-    localStorage.setItem('run',run);
-
-    if(!dailyData[today]) dailyData[today]={};
-    if(!dailyData[today][run]) dailyData[today][run]=[];
-
-    const entry={date:today,vehicle,run,location,arrival,booking,loading,departure,comment};
-    dailyData[today][run].push(entry);
-    localStorage.setItem('dailyData',JSON.stringify(dailyData));
-
-    const filterDate = document.getElementById('filterDate').value || today;
-    loadTable(filterDate);
-
-    document.getElementById("location").value="";
-    document.getElementById("manualLocation").value="";
-    document.getElementById("manualLocation").style.display="none";
-    timeFields.forEach(f=>document.getElementById(f).value="");
-    document.getElementById("comment").value="";
-
-    populateFilterDate();
-}
-
-function sendExcel(){
-    const selectedDate = document.getElementById('filterDate').value;
-    if(!selectedDate || !dailyData[selectedDate]){
-        alert("No data for selected date!");
-        return;
-    }
-
-    const runKey = getRunKey();
-    const data=[];
-    Object.keys(dailyData[selectedDate]).forEach(run=>{
-        if(runKey && run !== runKey) return;
-        dailyData[selectedDate][run].forEach(entry=>{
-            data.push(entry);
-        });
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault(); // permite drop
     });
 
-    if(data.length===0){ alert("No data to generate for selected Run/Date!"); return; }
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const data = e.dataTransfer.getData('text/plain');
+      
+      const newItem = document.createElement('div');
+      newItem.innerText = data;
+      newItem.className = 'droppedItem';
+      
+      dropZone.appendChild(newItem);
+    });
+  </script>
 
-    const wb=XLSX.utils.book_new();
-    const ws=XLSX.utils.json_to_sheet(data);
-    XLSX.utils.book_append_sheet(wb,ws,"DailyReport");
-
-    const wbout=XLSX.write(wb,{bookType:'xlsx', type:'array'});
-    const blob=new Blob([wbout],{type:"application/octet-stream"});
-    const url=URL.createObjectURL(blob);
-
-    const a=document.createElement('a');
-    a.href=url;
-    a.download=`DriverDailyReport_${selectedDate}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    alert("Excel generated for " + selectedDate);
-}
-</script>
+  <!-- Comentarii finale ale paginii -->
+  <!-- Footer / notes / end of file -->
 </body>
 </html>
