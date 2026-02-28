@@ -11,12 +11,17 @@ input, select { margin-bottom: 10px; width: 100%; padding: 5px; }
 table { width: 100%; border-collapse: collapse; margin-top: 20px; }
 th, td { border: 1px solid #000; padding: 8px; text-align: center; }
 #alertExcel { background-color: #ffcccc; color: #990000; border: 2px solid #990000; padding: 15px; font-size: 18px; text-align: center; margin: 15px 0; font-weight: bold; }
+#alertBlock { background-color: #ffe0b3; color: #993d00; border: 2px solid #993d00; padding: 15px; font-size: 18px; text-align: center; margin: 15px 0; font-weight: bold; }
 button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 </style>
 </head>
 <body>
 
 <h2>Driver Daily Report</h2>
+
+<div id="alertBlock" style="display:none;">
+⚠️ Cannot start new day: yesterday's report not generated!
+</div>
 
 <!-- Global Daily Info -->
 <label>Vehicle:</label>
@@ -105,105 +110,145 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-let entries = [];
-
-// Load global values from localStorage
-window.onload = function() {
-    if(localStorage.getItem('vehicle')) document.getElementById('vehicle').value = localStorage.getItem('vehicle');
-    if(localStorage.getItem('run')) document.getElementById('run').value = localStorage.getItem('run');
-    if(localStorage.getItem('date')) document.getElementById('date').value = localStorage.getItem('date');
-
-    // preset times
-    if(!document.getElementById('booking').value) document.getElementById('booking').value = "08:00";
-    if(!document.getElementById('arrival').value) document.getElementById('arrival').value = "08:30";
-    if(!document.getElementById('loading').value) document.getElementById('loading').value = "08:45";
-    if(!document.getElementById('departure').value) document.getElementById('departure').value = "09:00";
-};
-
-// Auto-skip for time inputs
-const timeFields = ['booking', 'arrival', 'loading', 'departure'];
-timeFields.forEach((id, index) => {
-    document.getElementById(id).addEventListener('input', function() {
-        if(this.value.length === 5){ // hh:mm complete
-            const next = timeFields[index + 1];
+const timeFields = ['booking','arrival','loading','departure'];
+timeFields.forEach((id,index)=>{
+    document.getElementById(id).addEventListener('input',function(){
+        if(this.value.length===5){
+            const next=timeFields[index+1];
             if(next) document.getElementById(next).focus();
         }
     });
 });
 
-function checkManual() {
-    const loc = document.getElementById("location").value;
-    document.getElementById("manualLocation").style.display = loc === "manual" ? "block" : "none";
+function checkManual(){
+    const loc=document.getElementById("location").value;
+    document.getElementById("manualLocation").style.display=loc==="manual"?"block":"none";
 }
 
-function addEntry() {
-    const vehicle = document.getElementById("vehicle").value;
-    const run = document.getElementById("run").value;
-    const date = document.getElementById("date").value;
+// ======== LocalStorage Structure ========
+// dailyData = {
+//   "YYYY-MM-DD": {
+//       "Run1": [ {row1}, {row2}, ... ],
+//       "Run2": [ ... ]
+//   }
+// }
 
-    localStorage.setItem('vehicle', vehicle);
-    localStorage.setItem('run', run);
-    localStorage.setItem('date', date);
+let todayStr = new Date().toISOString().split('T')[0];
+let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
+let generatedDays = JSON.parse(localStorage.getItem('generatedDays')||"{}");
 
-    const locationSelect = document.getElementById("location").value;
-    const location = locationSelect === "manual" ? document.getElementById("manualLocation").value : locationSelect;
-    const booking = document.getElementById("booking").value;
-    const arrival = document.getElementById("arrival").value;
-    const loading = document.getElementById("loading").value;
-    const departure = document.getElementById("departure").value;
-    const comment = document.getElementById("comment").value;
-
-    if(!vehicle || !run || !date || !location){
-        alert("Please fill all required fields!");
-        return;
-    }
-
-    const entry = { date, vehicle, run, location, booking, arrival, loading, departure, comment };
-    entries.push(entry);
-
-    const table = document.getElementById("reportTable").getElementsByTagName('tbody')[0];
-    const row = table.insertRow();
-    Object.values(entry).forEach(value => {
-        const cell = row.insertCell();
-        cell.innerHTML = value;
-        cell.contentEditable = true; // editable for manual corrections
+// Check if previous day was generated
+let yesterday = new Date();
+yesterday.setDate(yesterday.getDate()-1);
+let yesterdayStr = yesterday.toISOString().split('T')[0];
+if(!generatedDays[yesterdayStr] && Object.keys(dailyData).length>0){
+    document.getElementById("alertBlock").style.display="block";
+    document.querySelectorAll('input, select, button').forEach(el=>{
+        if(!el.innerText.includes("Generate Excel")) el.disabled=true;
     });
-
-    // Clear fields for next entry
-    document.getElementById("location").value = "";
-    document.getElementById("manualLocation").value = "";
-    document.getElementById("manualLocation").style.display = "none";
-    document.getElementById("booking").value = "";
-    document.getElementById("arrival").value = "";
-    document.getElementById("loading").value = "";
-    document.getElementById("departure").value = "";
-    document.getElementById("comment").value = "";
 }
 
-function generateExcel() {
-    // Read editable table values
-    const table = document.getElementById("reportTable").getElementsByTagName('tbody')[0];
-    const rows = table.getElementsByTagName('tr');
-    const data = [];
-    for(let r=0; r<rows.length; r++){
-        const cells = rows[r].getElementsByTagName('td');
-        const rowData = {};
-        rowData['Date'] = cells[0].innerText;
-        rowData['Vehicle'] = cells[1].innerText;
-        rowData['Run'] = cells[2].innerText;
-        rowData['Collection and Delivery Point'] = cells[3].innerText;
-        rowData['Booking Time'] = cells[4].innerText;
-        rowData['Arrival Time'] = cells[5].innerText;
-        rowData['Loading'] = cells[6].innerText;
-        rowData['Departure'] = cells[7].innerText;
-        rowData['Comment'] = cells[8].innerText;
+// Load vehicle/run/date from localStorage
+window.onload=function(){
+    if(localStorage.getItem('vehicle')) document.getElementById('vehicle').value=localStorage.getItem('vehicle');
+    if(localStorage.getItem('run')) document.getElementById('run').value=localStorage.getItem('run');
+    if(localStorage.getItem('date')) document.getElementById('date').value=localStorage.getItem('date');
+
+    // preset times
+    if(!document.getElementById('booking').value) document.getElementById('booking').value="08:00";
+    if(!document.getElementById('arrival').value) document.getElementById('arrival').value="08:30";
+    if(!document.getElementById('loading').value) document.getElementById('loading').value="08:45";
+    if(!document.getElementById('departure').value) document.getElementById('departure').value="09:00";
+
+    loadTable();
+};
+
+// ======== Functions ========
+
+function getRunKey(){
+    return document.getElementById('run').value;
+}
+
+function loadTable(){
+    const tbody=document.getElementById('reportTable').getElementsByTagName('tbody')[0];
+    tbody.innerHTML="";
+    const runKey=getRunKey();
+    if(!runKey) return;
+    if(dailyData[todayStr] && dailyData[todayStr][runKey]){
+        dailyData[todayStr][runKey].forEach(entry=>{
+            const row=tbody.insertRow();
+            Object.values(entry).forEach(v=>{
+                const cell=row.insertCell();
+                cell.innerText=v;
+                cell.contentEditable=true;
+            });
+        });
+    }
+}
+
+function addEntry(){
+    const vehicle=document.getElementById('vehicle').value;
+    const run=document.getElementById('run').value;
+    const date=document.getElementById('date').value;
+    const locationSelect=document.getElementById('location').value;
+    const location=locationSelect==="manual"?document.getElementById('manualLocation').value:locationSelect;
+    const booking=document.getElementById('booking').value;
+    const arrival=document.getElementById('arrival').value;
+    const loading=document.getElementById('loading').value;
+    const departure=document.getElementById('departure').value;
+    const comment=document.getElementById('comment').value;
+
+    if(!vehicle||!run||!date||!location){alert("Please fill all required fields!"); return;}
+
+    localStorage.setItem('vehicle',vehicle);
+    localStorage.setItem('run',run);
+    localStorage.setItem('date',date);
+
+    if(!dailyData[todayStr]) dailyData[todayStr]={};
+    if(!dailyData[todayStr][run]) dailyData[todayStr][run]=[];
+
+    const entry={date,vehicle,run,location,booking,arrival,loading,departure,comment};
+    dailyData[todayStr][run].push(entry);
+    localStorage.setItem('dailyData',JSON.stringify(dailyData));
+
+    loadTable();
+
+    // clear input fields
+    document.getElementById("location").value="";
+    document.getElementById("manualLocation").value="";
+    document.getElementById("manualLocation").style.display="none";
+    timeFields.forEach(f=>document.getElementById(f).value="");
+    document.getElementById("comment").value="";
+}
+
+function generateExcel(){
+    const tbody=document.getElementById('reportTable').getElementsByTagName('tbody')[0];
+    const rows=tbody.getElementsByTagName('tr');
+    const data=[];
+    for(let r=0;r<rows.length;r++){
+        const cells=rows[r].getElementsByTagName('td');
+        const rowData={};
+        rowData['Date']=cells[0].innerText;
+        rowData['Vehicle']=cells[1].innerText;
+        rowData['Run']=cells[2].innerText;
+        rowData['Collection and Delivery Point']=cells[3].innerText;
+        rowData['Booking Time']=cells[4].innerText;
+        rowData['Arrival Time']=cells[5].innerText;
+        rowData['Loading']=cells[6].innerText;
+        rowData['Departure']=cells[7].innerText;
+        rowData['Comment']=cells[8].innerText;
         data.push(rowData);
     }
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(data);
-    XLSX.utils.book_append_sheet(wb, ws, "DailyReport");
-    XLSX.writeFile(wb, "DriverDailyReport.xlsx");
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.json_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb,ws,"DailyReport");
+    XLSX.writeFile(wb,"DriverDailyReport.xlsx");
+
+    // mark today as generated
+    generatedDays[todayStr]=true;
+    localStorage.setItem('generatedDays',JSON.stringify(generatedDays));
+    alert("Excel generated! You can now start tomorrow's report.");
 }
 </script>
 
