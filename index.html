@@ -1,99 +1,121 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GPLG Run Sheet</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPLG Run Sheet - Drag & Drop</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: #f9f9f9;
+  }
 
-  <!-- Stil general -->
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
+  h1, h3 {
+    color: #333;
+  }
 
-    h1, h2, h3 {
-      color: #333;
-    }
+  .dragDropContainer {
+    max-width: 400px;
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid #aaa;
+    border-radius: 8px;
+    background-color: #fafafa;
+  }
 
-    /* Stil drag & drop Collection & Delivery Specification */
-    #taskList {
-      list-style-type: none;
-      padding: 0;
-    }
+  .dragDropContainer h3 {
+    margin-bottom: 12px;
+  }
 
-    #taskList li {
-      padding: 8px 12px;
-      margin: 4px;
-      background-color: #f0f0f0;
-      border: 1px solid #ccc;
-      cursor: grab;
-    }
+  ul {
+    list-style-type: none;
+    padding: 0;
+  }
 
-    #dropZone {
-      margin-top: 20px;
-      padding: 20px;
-      border: 2px dashed #aaa;
-      min-height: 50px;
-    }
+  li {
+    padding: 8px 12px;
+    margin: 6px 0;
+    background-color: #f0f8ff;
+    border: 1px solid #888;
+    border-radius: 4px;
+    cursor: grab;
+  }
 
-    /* Opțional: stil nou pentru item-urile drop-uite */
-    .droppedItem {
-      padding: 6px 10px;
-      margin: 4px;
-      background-color: #d0ffd0;
-      border: 1px solid #0c0;
-    }
-  </style>
+  #dropZone {
+    min-height: 150px;
+    background-color: #fff0f0;
+    border: 2px dashed #aa0000;
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 6px;
+  }
+
+  .droppedItem {
+    padding: 6px 10px;
+    margin: 4px 0;
+    background-color: #d0ffd0;
+    border: 1px solid #0c0;
+    border-radius: 4px;
+  }
+</style>
 </head>
 <body>
 
-  <h1>GPLG Run Sheet</h1>
+<h1>GPLG Run Sheet</h1>
 
-  <!-- Alte secțiuni ale paginii tale aici -->
-  <p>Secțiuni existente...</p>
+<!-- Collection & Delivery Specification List -->
+<div class="dragDropContainer">
+  <h3>Collection & Delivery Specification</h3>
+  <ul id="specList">
+    <li draggable="true" class="draggable">Collection</li>
+    <li draggable="true" class="draggable">Delivery</li>
+  </ul>
+</div>
 
-  <!-- Collection & Delivery Specification Drag & Drop -->
-  <div id="dragDropContainer">
-    <h3>Collection & Delivery Specification</h3>
-    <ul id="taskList">
-      <li draggable="true" class="draggable">Collection</li>
-      <li draggable="true" class="draggable">Delivery</li>
-    </ul>
-  </div>
+<!-- Collection and Delivery Points List -->
+<div class="dragDropContainer">
+  <h3>Collection and Delivery Points</h3>
+  <ul id="pointsList">
+    <li draggable="true" class="draggable">LG</li>
+    <li draggable="true" class="draggable">AC</li>
+    <li draggable="true" class="draggable">BA WC</li>
+    <li draggable="true" class="draggable">Dnata CX</li>
+    <li draggable="true" class="draggable">BREAK</li>
+    <li draggable="true" class="draggable">LANDMARK GLOBAL</li>
+  </ul>
+</div>
 
-  <div id="dropZone">
-    <h3>Drop Here</h3>
-  </div>
+<!-- Drop Zone -->
+<div id="dropZone">
+  <h3>Drop Here</h3>
+</div>
 
-  <!-- Script drag & drop -->
-  <script>
-    const draggables = document.querySelectorAll('.draggable');
-    const dropZone = document.getElementById('dropZone');
+<script>
+  const draggables = document.querySelectorAll('.draggable');
+  const dropZone = document.getElementById('dropZone');
 
-    draggables.forEach(item => {
-      item.addEventListener('dragstart', (e) => {
-        e.dataTransfer.setData('text/plain', e.target.innerText);
-      });
+  draggables.forEach(item => {
+    item.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', e.target.innerText);
     });
+  });
 
-    dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault(); // permite drop
-    });
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+  });
 
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      const data = e.dataTransfer.getData('text/plain');
-      
-      const newItem = document.createElement('div');
-      newItem.innerText = data;
-      newItem.className = 'droppedItem';
-      
-      dropZone.appendChild(newItem);
-    });
-  </script>
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const data = e.dataTransfer.getData('text/plain');
 
-  <!-- Comentarii finale ale paginii -->
-  <!-- Footer / notes / end of file -->
+    const newItem = document.createElement('div');
+    newItem.innerText = data;
+    newItem.className = 'droppedItem';
+
+    dropZone.appendChild(newItem);
+  });
+</script>
+
 </body>
 </html>
