@@ -13,7 +13,6 @@ input.comment { width: 100%; }
 table { width: 100%; border-collapse: collapse; margin-top: 20px; }
 th, td { border: 1px solid #000; padding: 8px; text-align: center; }
 #alertExcel { background-color: #ffcccc; color: #990000; border: 2px solid #990000; padding: 15px; font-size: 18px; text-align: center; margin: 15px 0; font-weight: bold; }
-#alertBlock { background-color: #ffe0b3; color: #993d00; border: 2px solid #993d00; padding: 15px; font-size: 18px; text-align: center; margin: 15px 0; font-weight: bold; }
 button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 </style>
 </head>
@@ -21,15 +20,11 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 
 <h2>Driver Daily Report</h2>
 
-<div id="alertBlock" style="display:none;">
-⚠️ Cannot start new day: previous day's report not generated!
-</div>
-
 <label>Vehicle:</label>
 <input type="text" id="vehicle" class="short" placeholder="Vehicle #">
 
 <label>Run:</label>
-<input type="number" id="run" class="short">
+<input type="text" id="run" class="short" placeholder="Run #">
 
 <label>Date:</label>
 <input type="date" id="date" class="short" value="">
@@ -136,27 +131,6 @@ let todayStr = new Date().toISOString().split('T')[0];
 let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
 let generatedDays = JSON.parse(localStorage.getItem('generatedDays')||"{}");
 
-// Check yesterday
-function checkYesterday(){
-    let selectedDate = document.getElementById('filterDate').value || todayStr;
-    const prevDate = new Date(selectedDate);
-    prevDate.setDate(prevDate.getDate()-1);
-    const prevDateStr = prevDate.toISOString().split('T')[0];
-
-    if(dailyData[prevDateStr] && !generatedDays[prevDateStr]){
-        document.getElementById("alertBlock").style.display="block";
-        document.querySelectorAll('input, select, button').forEach(el=>{
-            if(!el.innerText.includes("Send Excel")) el.disabled=true;
-        });
-    } else {
-        document.getElementById("alertBlock").style.display="none";
-        document.querySelectorAll('input, select, button').forEach(el=>{
-            el.disabled=false;
-        });
-    }
-}
-checkYesterday();
-
 // Load saved global values
 window.onload=function(){
     if(localStorage.getItem('vehicle')) document.getElementById('vehicle').value=localStorage.getItem('vehicle');
@@ -179,18 +153,6 @@ function getRunKey(){ return document.getElementById('run').value; }
 document.getElementById('filterDate').addEventListener('change', function(){
     const selectedDate = this.value;
     if(!selectedDate) return;
-
-    const prevDate = new Date(selectedDate);
-    prevDate.setDate(prevDate.getDate()-1);
-    const prevDateStr = prevDate.toISOString().split('T')[0];
-
-    if(dailyData[prevDateStr] && !generatedDays[prevDateStr]){
-        alert("Cannot proceed: previous day's report not generated!");
-        this.value = todayStr;
-        checkYesterday();
-        return;
-    }
-
     loadTable(selectedDate);
 });
 
@@ -286,7 +248,6 @@ function sendExcel(){
 
     generatedDays[selectedDate]=true;
     localStorage.setItem('generatedDays',JSON.stringify(generatedDays));
-    checkYesterday();
     alert("Excel generated for " + selectedDate);
 }
 </script>
