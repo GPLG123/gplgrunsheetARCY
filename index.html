@@ -134,12 +134,20 @@ let generatedDays = JSON.parse(localStorage.getItem('generatedDays')||"{}");
 // check yesterday
 let yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
 let yesterdayStr = yesterday.toISOString().split('T')[0];
-if(!generatedDays[yesterdayStr] && Object.keys(dailyData).length>0){
-    document.getElementById("alertBlock").style.display="block";
-    document.querySelectorAll('input, select, button').forEach(el=>{
-        if(!el.innerText.includes("Send Excel")) el.disabled=true;
-    });
+function checkYesterday(){
+    if(dailyData[yesterdayStr] && !generatedDays[yesterdayStr]){
+        document.getElementById("alertBlock").style.display="block";
+        document.querySelectorAll('input, select, button').forEach(el=>{
+            if(!el.innerText.includes("Send Excel")) el.disabled=true;
+        });
+    } else {
+        document.getElementById("alertBlock").style.display="none";
+        document.querySelectorAll('input, select, button').forEach(el=>{
+            el.disabled=false;
+        });
+    }
 }
+checkYesterday();
 
 // load saved global values
 window.onload=function(){
@@ -243,8 +251,11 @@ function sendExcel(){
 
     generatedDays[todayStr]=true;
     localStorage.setItem('generatedDays',JSON.stringify(generatedDays));
+    checkYesterday();
     alert("Excel generated! You can now quickly attach it to an email.");
 }
 </script>
+</body>
+</html>
 </body>
 </html>
