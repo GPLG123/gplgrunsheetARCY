@@ -41,15 +41,37 @@ th { background-color:#eee; }
 </select>
 
 <label>Collection and Delivery Point:</label>
-<select id="location">
+<select id="location" required>
   <option value="">Select</option>
-  <option>AC</option>
-  <option>ASC</option>
-  <option>BA WC</option>
-  <option>Dnata CP</option>
-  <option>Swissport</option>
-  <option>BREAK</option>
+  <option value="AC">AC</option>
+  <option value="ASC">ASC</option>
+  <option value="BA WC">BA WC</option>
+  <option value="BA WC 2nd">BA WC 2nd</option>
+  <option value="Ba XPS">Ba XPS</option>
+  <option value="DAI">DAI</option>
+  <option value="Dnata CP">Dnata CP</option>
+  <option value="Dnata CX">Dnata CX</option>
+  <option value="Dnata U1">Dnata U1</option>
+  <option value="Dnata U2">Dnata U2</option>
+  <option value="Dnata U3">Dnata U3</option>
+  <option value="Dnata VS/Delta">Dnata VS/Delta</option>
+  <option value="HCH">HCH</option>
+  <option value="HCH Horton">HCH Horton</option>
+  <option value="JL">JL</option>
+  <option value="LG">LG</option>
+  <option value="LANDMARK GLOBAL">LANDMARK GLOBAL</option>
+  <option value="MW">MW</option>
+  <option value="Scylla Rd">Scylla Rd</option>
+  <option value="Scylla U1">Scylla U1</option>
+  <option value="WFS 549">WFS 549</option>
+  <option value="WFS 550">WFS 550</option>
+  <option value="ECMS">ECMS</option>
+  <option value="Swissport">Swissport</option>
+  <option value="BREAK">BREAK</option>
+  <option value="manual">Other (Manual)</option>
 </select>
+
+<input type="text" id="manualLocation" placeholder="Enter manual location" style="display:none; margin-top:6px; width: 220px;">
 
 <label>Arrival Time:</label>
 <input type="time" id="arrival">
@@ -101,16 +123,18 @@ th { background-color:#eee; }
 const HOURLY_RATE = 37.5;
 let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
 
-window.onload = function(){
-  filterDate.value = new Date().toISOString().split('T')[0];
-  loadTable();
-};
+// Show/hide manual location input
+const locationSelect = document.getElementById('location');
+const manualLocationInput = document.getElementById('manualLocation');
+locationSelect.addEventListener('change', ()=>{
+  manualLocationInput.style.display = (locationSelect.value === 'manual') ? 'block' : 'none';
+});
 
-// 🔹 Utility functions
+// Utilities
 function timeToMinutes(t){ if(!t) return null; const [h,m]=t.split(":").map(Number); return h*60+m; }
 function roundTo30(mins){ let r=mins%30; return (r<=15)?mins-r:mins+(30-r); }
 
-// 🔹 Load table filtered by date + run
+// Load table with date + run filter
 function loadTable(date = filterDate.value){
   const tbody = document.querySelector("#reportTable tbody");
   tbody.innerHTML = "";
@@ -134,34 +158,34 @@ function loadTable(date = filterDate.value){
   });
 }
 
-// 🔹 Event listeners
+// Event listeners
 filterDate.addEventListener('change', ()=>loadTable(filterDate.value));
 run.addEventListener('input', ()=>loadTable(filterDate.value));
 
 addEntryBtn.addEventListener('click', ()=>{
-  const vehicle=vehicle.value.trim();
-  const runVal=run.value.trim();
-  const date=new Date().toISOString().split('T')[0];
-  const specification=specification.value;
-  const locationVal=location.value;
-  const arrivalVal=arrival.value;
-  const bookingVal=booking.value;
-  const loadingVal=loading.value;
-  const departureVal=departure.value;
-  const commentVal=comment.value.trim();
-  if(!vehicle||!runVal||!locationVal||!specification) return alert("Fill required fields");
+  const vehicleVal = vehicle.value.trim();
+  const runVal = run.value.trim();
+  const date = new Date().toISOString().split('T')[0];
+  const specificationVal = specification.value;
+  let locationVal = (locationSelect.value === 'manual') ? manualLocationInput.value.trim() : locationSelect.value;
+  const arrivalVal = arrival.value;
+  const bookingVal = booking.value;
+  const loadingVal = loading.value;
+  const departureVal = departure.value;
+  const commentVal = comment.value.trim();
+  if(!vehicleVal||!runVal||!locationVal||!specificationVal) return alert("Fill required fields");
   if(!dailyData[date]) dailyData[date]={};
   if(!dailyData[date][runVal]) dailyData[date][runVal]=[];
   dailyData[date][runVal].push({
-    date, vehicle, run: runVal, location: locationVal,
+    date, vehicle: vehicleVal, run: runVal, location: locationVal,
     arrival: arrivalVal, booking: bookingVal, loading: loadingVal,
-    departure: departureVal, specification, comment: commentVal
+    departure: departureVal, specification: specificationVal, comment: commentVal
   });
   localStorage.setItem('dailyData', JSON.stringify(dailyData));
   loadTable(date);
 });
 
-// 🔹 Export Excel with Run + Total Hours + Cost
+// Export Excel
 sendExcelBtn.addEventListener('click', ()=>{
   const selectedDate = filterDate.value;
   const runFilter = run.value.trim();
@@ -212,6 +236,12 @@ sendExcelBtn.addEventListener('click', ()=>{
 
   XLSX.writeFile(wb, fileName+".xlsx");
 });
+
+// Initialize
+window.onload = function(){
+  filterDate.value = new Date().toISOString().split('T')[0];
+  loadTable();
+};
 </script>
 
 </body>
