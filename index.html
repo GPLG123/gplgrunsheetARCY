@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Driver Daily Report</title>
+
+<!-- ✅ SheetJS Library for Excel Export -->
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
 <style>
 body { font-family: Arial, sans-serif; margin: 20px; }
 label { font-weight: bold; margin-top: 10px; display: block; }
@@ -71,10 +75,7 @@ td[contenteditable="true"]:focus { outline:2px solid #6ca0dc; background-color:#
   <option value="ECMS">ECMS</option>
   <option value="Swissport">Swissport</option>
   <option value="BREAK">BREAK</option>
-  <option value="manual">Other (Manual)</option>
 </select>
-
-<input type="text" id="manualLocation" placeholder="Enter manual location" style="display:none; margin-top:6px; width: 220px;">
 
 <label for="arrival">Arrival Time:</label>
 <input type="time" id="arrival">
@@ -124,75 +125,48 @@ td[contenteditable="true"]:focus { outline:2px solid #6ca0dc; background-color:#
 
 <script>
 let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
-let generatedDays = JSON.parse(localStorage.getItem('generatedDays')||"{}");
 
 window.onload = function(){
-  if(localStorage.getItem('vehicle')) document.getElementById('vehicle').value=localStorage.getItem('vehicle');
-  if(localStorage.getItem('run')) document.getElementById('run').value=localStorage.getItem('run');
-  if(localStorage.getItem('specification')) document.getElementById('specification').value=localStorage.getItem('specification');
-
-  ['arrival','booking','loading','departure'].forEach(id=>{ if(!document.getElementById(id).value) document.getElementById(id).value=id==="departure"?"09:00":"08:00"; });
-  
-  populateFilterDate();
   document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
   loadTable();
 };
 
-function populateFilterDate(){
-  const filterDate=document.getElementById('filterDate');
-  const dates=Object.keys(dailyData).sort();
-  if(dates.length===0){ filterDate.value=""; return; }
-  filterDate.value=dates[0];
-}
-
-function getRunKey(){ return document.getElementById('run').value.trim(); }
-
 function loadTable(dateForTable=new Date().toISOString().split('T')[0]){
   const tbody=document.querySelector("#reportTable tbody");
   tbody.innerHTML="";
-  const runKey=getRunKey();
   if(!dailyData[dateForTable]) return;
 
   Object.keys(dailyData[dateForTable]).forEach(run=>{
-    if(runKey && run!==runKey) return;
     dailyData[dateForTable][run].forEach(entry=>{
       const row=tbody.insertRow();
-      let cell;
-
-      cell=row.insertCell(); cell.textContent=entry.date;
-      cell=row.insertCell(); cell.textContent=entry.vehicle; cell.contentEditable=true;
-      cell=row.insertCell(); cell.textContent=entry.run; cell.contentEditable=true;
-      cell=row.insertCell(); cell.textContent=entry.location; cell.contentEditable=true;
-
-      ['arrival','booking','loading','departure'].forEach(field=>{
-        cell=row.insertCell(); cell.textContent=entry[field]||""; cell.contentEditable=true;
+      Object.values(entry).forEach(value=>{
+        const cell=row.insertCell();
+        cell.textContent=value;
       });
-
-      /* 🔥 MODIFICAREA ESTE AICI */
-      cell=row.insertCell();
-      cell.textContent=entry.specification||"";
-      cell.contentEditable=true;
-
-      cell=row.insertCell(); cell.textContent=entry.comment||""; cell.contentEditable=true;
     });
   });
 }
 
-document.getElementById('filterDate').addEventListener('change', function(){ loadTable(this.value); });
+document.getElementById('filterDate').addEventListener('change', function(){
+  loadTable(this.value);
+});
 
 document.getElementById('addEntryBtn').addEventListener('click', function(){
   const vehicle=document.getElementById('vehicle').value.trim();
   const run=document.getElementById('run').value.trim();
   const date=new Date().toISOString().split('T')[0];
   const specification=document.getElementById('specification').value;
-  let location=document.getElementById('location').value;
+  const location=document.getElementById('location').value;
   const arrival=document.getElementById('arrival').value;
   const booking=document.getElementById('booking').value;
   const loading=document.getElementById('loading').value;
   const departure=document.getElementById('departure').value;
   const comment=document.getElementById('comment').value.trim();
 
-  if(!vehicle||!run||!location||!specification){ alert("Please fill all required fields!"); return; }
+  if(!vehicle||!run||!location||!specification){
+    alert("Please fill all required fields!");
+    return;
+  }
 
   if(!dailyData[date]) dailyData[date]={};
   if(!dailyData[date][run]) dailyData[date][run]=[];
@@ -203,8 +177,14 @@ document.getElementById('addEntryBtn').addEventListener('click', function(){
   loadTable(date);
 });
 
+/* ✅ NEW WORKING EXCEL EXPORT */
 document.getElementById('sendExcelBtn').addEventListener('click', function(){
-  alert("Excel export unchanged.");
+
+  const table = document.getElementById("reportTable");
+  const wb = XLSX.utils.table_to_book(table, {sheet:"Daily Report"});
+  const selectedDate = document.getElementById('filterDate').value || "Report";
+  XLSX.writeFile(wb, "Driver_Report_" + selectedDate + ".xlsx");
+
 });
 </script>
 
