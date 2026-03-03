@@ -5,24 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Driver Daily Report</title>
 
-<!-- ✅ SheetJS Library for Excel Export -->
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
 <style>
 body { font-family: Arial, sans-serif; margin: 20px; }
 label { font-weight: bold; margin-top: 10px; display: block; }
-input[type="text"], input[type="time"], select, textarea { margin-top:4px; margin-bottom:10px; padding:6px; width:220px; box-sizing:border-box;}
+input, select, textarea { margin-top:4px; margin-bottom:10px; padding:6px; width:220px; box-sizing:border-box;}
 textarea { width:100%; height:40px; resize:vertical;}
 button { padding:8px 15px; margin-top:10px; cursor:pointer;}
 table { width:100%; border-collapse: collapse; margin-top:20px; font-size:14px;}
 th, td { border:1px solid #888; padding:6px 8px; text-align:center;}
 th { background-color:#eee; }
-
-th:nth-child(4), td:nth-child(4) { width:120px; }
-th:nth-child(9), td:nth-child(9) { width:140px; }
-th:nth-child(10), td:nth-child(10) { width:250px; }
-
-td[contenteditable="true"]:focus { outline:2px solid #6ca0dc; background-color:#f0f8ff; }
 .short { width:120px;}
 #alertExcel { margin-top:15px; background-color:#f8d7da; border:1px solid #f5c6cb; color:#721c24; padding:10px; font-weight:bold; }
 </style>
@@ -31,79 +24,60 @@ td[contenteditable="true"]:focus { outline:2px solid #6ca0dc; background-color:#
 
 <h2>Driver Daily Report</h2>
 
-<label for="vehicle">Vehicle:</label>
-<input type="text" id="vehicle" class="short" placeholder="Vehicle">
+<label>Vehicle:</label>
+<input type="text" id="vehicle">
 
-<label for="run">Run:</label>
-<input type="text" id="run" class="short" placeholder="Run #">
+<label>Run:</label>
+<input type="text" id="run">
 
 <hr>
 
-<label for="specification">Collection and Delivery Specification:</label>
-<select id="specification" required>
+<label>Collection and Delivery Specification:</label>
+<select id="specification">
   <option value="">Select specification</option>
-  <option value="Collection Only">Collection Only</option>
-  <option value="Delivery Only">Delivery Only</option>
-  <option value="Collection and Delivery">Collection and Delivery</option>
+  <option>Collection Only</option>
+  <option>Delivery Only</option>
+  <option>Collection and Delivery</option>
 </select>
 
-<label for="location">Collection and Delivery Point:</label>
-<select id="location" required>
+<label>Collection and Delivery Point:</label>
+<select id="location">
   <option value="">Select</option>
-  <option value="AC">AC</option>
-  <option value="ASC">ASC</option>
-  <option value="BA WC">BA WC</option>
-  <option value="BA WC 2nd">BA WC 2nd</option>
-  <option value="Ba XPS">Ba XPS</option>
-  <option value="DAI">DAI</option>
-  <option value="Dnata CP">Dnata CP</option>
-  <option value="Dnata CX">Dnata CX</option>
-  <option value="Dnata U1">Dnata U1</option>
-  <option value="Dnata U2">Dnata U2</option>
-  <option value="Dnata U3">Dnata U3</option>
-  <option value="Dnata VS/Delta">Dnata VS/Delta</option>
-  <option value="HCH">HCH</option>
-  <option value="HCH Horton">HCH Horton</option>
-  <option value="JL">JL</option>
-  <option value="LG">LG</option>
-  <option value="LANDMARK GLOBAL">LANDMARK GLOBAL</option>
-  <option value="MW">MW</option>
-  <option value="Scylla Rd">Scylla Rd</option>
-  <option value="Scylla U1">Scylla U1</option>
-  <option value="WFS 549">WFS 549</option>
-  <option value="WFS 550">WFS 550</option>
-  <option value="ECMS">ECMS</option>
-  <option value="Swissport">Swissport</option>
-  <option value="BREAK">BREAK</option>
+  <option>AC</option>
+  <option>ASC</option>
+  <option>BA WC</option>
+  <option>Dnata CP</option>
+  <option>Swissport</option>
+  <option>BREAK</option>
 </select>
 
-<label for="arrival">Arrival Time:</label>
+<label>Arrival Time:</label>
 <input type="time" id="arrival">
 
-<label for="booking">Booking Time:</label>
+<label>Booking Time:</label>
 <input type="time" id="booking">
 
-<label for="loading">Loading:</label>
+<label>Loading:</label>
 <input type="time" id="loading">
 
-<label for="departure">Departure:</label>
+<label>Departure:</label>
 <input type="time" id="departure">
 
-<label for="comment">Comment:</label>
-<textarea id="comment" placeholder="Add comment"></textarea>
+<label>Comment:</label>
+<textarea id="comment"></textarea>
 
-<button id="addEntryBtn" type="button">Add Location</button>
+<button id="addEntryBtn">Add Location</button>
 
 <hr>
 
-<label for="filterDate">Select Date to View / Generate Excel:</label>
-<input type="date" id="filterDate" class="short">
+<label>Select Date to View / Generate Excel:</label>
+<input type="date" id="filterDate">
 
 <div id="alertExcel">
-⚠️ Important: After adding all locations, make sure to click <strong>Send Excel</strong> to save your daily report locally! ⚠️
+⚠️ After adding all locations, click <strong>Send Excel</strong> to save report.
 </div>
 
-<button id="sendExcelBtn" type="button">Send Excel</button>
+<button id="sendExcelBtn">Send Excel</button>
 
 <table id="reportTable">
 <thead>
@@ -111,12 +85,12 @@ td[contenteditable="true"]:focus { outline:2px solid #6ca0dc; background-color:#
 <th>Date</th>
 <th>Vehicle</th>
 <th>Run</th>
-<th>Collection and Delivery Point</th>
-<th>Arrival Time</th>
-<th>Booking Time</th>
+<th>Location</th>
+<th>Arrival</th>
+<th>Booking</th>
 <th>Loading</th>
 <th>Departure</th>
-<th>Collection and Delivery Specification</th>
+<th>Specification</th>
 <th>Comment</th>
 </tr>
 </thead>
@@ -124,67 +98,130 @@ td[contenteditable="true"]:focus { outline:2px solid #6ca0dc; background-color:#
 </table>
 
 <script>
+const HOURLY_RATE = 37.5;
 let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
 
 window.onload = function(){
-  document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
+  filterDate.value = new Date().toISOString().split('T')[0];
   loadTable();
 };
 
-function loadTable(dateForTable=new Date().toISOString().split('T')[0]){
+function loadTable(date=new Date().toISOString().split('T')[0]){
   const tbody=document.querySelector("#reportTable tbody");
   tbody.innerHTML="";
-  if(!dailyData[dateForTable]) return;
+  if(!dailyData[date]) return;
 
-  Object.keys(dailyData[dateForTable]).forEach(run=>{
-    dailyData[dateForTable][run].forEach(entry=>{
+  Object.keys(dailyData[date]).forEach(run=>{
+    dailyData[date][run].forEach(entry=>{
       const row=tbody.insertRow();
-      Object.values(entry).forEach(value=>{
-        const cell=row.insertCell();
-        cell.textContent=value;
+      Object.values(entry).forEach(val=>{
+        row.insertCell().textContent=val;
       });
     });
   });
 }
 
-document.getElementById('filterDate').addEventListener('change', function(){
+filterDate.addEventListener('change', function(){
   loadTable(this.value);
 });
 
-document.getElementById('addEntryBtn').addEventListener('click', function(){
-  const vehicle=document.getElementById('vehicle').value.trim();
-  const run=document.getElementById('run').value.trim();
-  const date=new Date().toISOString().split('T')[0];
-  const specification=document.getElementById('specification').value;
-  const location=document.getElementById('location').value;
-  const arrival=document.getElementById('arrival').value;
-  const booking=document.getElementById('booking').value;
-  const loading=document.getElementById('loading').value;
-  const departure=document.getElementById('departure').value;
-  const comment=document.getElementById('comment').value.trim();
+addEntryBtn.addEventListener('click', function(){
 
-  if(!vehicle||!run||!location||!specification){
-    alert("Please fill all required fields!");
-    return;
-  }
+  const vehicle=vehicle.value.trim();
+  const run=run.value.trim();
+  const date=new Date().toISOString().split('T')[0];
+  const specification=specification.value;
+  const location=location.value;
+  const arrival=arrival.value;
+  const booking=booking.value;
+  const loading=loading.value;
+  const departure=departure.value;
+  const comment=comment.value.trim();
+
+  if(!vehicle||!run||!location||!specification)
+    return alert("Fill required fields");
 
   if(!dailyData[date]) dailyData[date]={};
   if(!dailyData[date][run]) dailyData[date][run]=[];
 
   dailyData[date][run].push({date,vehicle,run,location,arrival,booking,loading,departure,specification,comment});
   localStorage.setItem('dailyData',JSON.stringify(dailyData));
-
   loadTable(date);
 });
 
-/* ✅ NEW WORKING EXCEL EXPORT */
-document.getElementById('sendExcelBtn').addEventListener('click', function(){
+function timeToMinutes(t){
+  if(!t) return null;
+  const [h,m]=t.split(":").map(Number);
+  return h*60+m;
+}
 
-  const table = document.getElementById("reportTable");
-  const wb = XLSX.utils.table_to_book(table, {sheet:"Daily Report"});
-  const selectedDate = document.getElementById('filterDate').value || "Report";
-  XLSX.writeFile(wb, "Driver_Report_" + selectedDate + ".xlsx");
+function roundTo30(mins){
+  let remainder = mins % 30;
+  if(remainder <= 15) return mins - remainder;
+  return mins + (30 - remainder);
+}
 
+sendExcelBtn.addEventListener('click', function(){
+
+  const selectedDate=filterDate.value;
+  if(!dailyData[selectedDate])
+    return alert("No data for date");
+
+  let arrivals=[];
+  let departures=[];
+  let rows=[];
+
+  Object.keys(dailyData[selectedDate]).forEach(run=>{
+    dailyData[selectedDate][run].forEach(entry=>{
+      rows.push([
+        entry.date,
+        entry.vehicle,
+        entry.run,
+        entry.location,
+        entry.arrival,
+        entry.booking,
+        entry.loading,
+        entry.departure,
+        entry.specification,
+        entry.comment
+      ]);
+
+      if(entry.arrival) arrivals.push(timeToMinutes(entry.arrival));
+      if(entry.departure) departures.push(timeToMinutes(entry.departure));
+    });
+  });
+
+  let totalHours = 0;
+
+  if(arrivals.length && departures.length){
+    let start=Math.min(...arrivals);
+    let end=Math.max(...departures);
+    let duration=end-start;
+    duration=roundTo30(duration);
+    totalHours=duration/60;
+  }
+
+  let totalCost = totalHours * HOURLY_RATE;
+
+  const sheetData = [
+    ["TOTAL HOURS", totalHours],
+    ["HOURLY RATE (£)", HOURLY_RATE],
+    ["TOTAL COST (£)", totalCost],
+    [],
+    ["Date","Vehicle","Run","Location","Arrival","Booking","Loading","Departure","Specification","Comment"],
+    ...rows
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+  ws["B1"].z = "0.00";
+  ws["B2"].z = "£0.00";
+  ws["B3"].z = "£0.00";
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Daily Report");
+
+  XLSX.writeFile(wb,"Driver_Report_"+selectedDate+".xlsx");
 });
 </script>
 
