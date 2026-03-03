@@ -27,7 +27,7 @@ th { background-color:#eee; }
 <label>Vehicle:</label>
 <input type="text" id="vehicle">
 
-<label>Run:</label>
+<label>Run #:</label>
 <input type="text" id="run">
 
 <hr>
@@ -106,101 +106,90 @@ window.onload = function(){
   loadTable();
 };
 
-function loadTable(date=new Date().toISOString().split('T')[0]){
-  const tbody=document.querySelector("#reportTable tbody");
-  tbody.innerHTML="";
-  if(!dailyData[date]) return;
+// 🔹 Utility functions
+function timeToMinutes(t){ if(!t) return null; const [h,m]=t.split(":").map(Number); return h*60+m; }
+function roundTo30(mins){ let r=mins%30; return (r<=15)?mins-r:mins+(30-r); }
 
-  Object.keys(dailyData[date]).forEach(run=>{
-    dailyData[date][run].forEach(entry=>{
-      const row=tbody.insertRow();
-      Object.values(entry).forEach(val=>{
-        row.insertCell().textContent=val;
-      });
+// 🔹 Load table filtered by date + run
+function loadTable(date = filterDate.value){
+  const tbody = document.querySelector("#reportTable tbody");
+  tbody.innerHTML = "";
+  const runFilter = run.value.trim();
+  if(!dailyData[date]) return;
+  Object.keys(dailyData[date]).forEach(runKey=>{
+    if(runFilter && runKey !== runFilter) return;
+    dailyData[date][runKey].forEach(entry=>{
+      const row = tbody.insertRow();
+      row.insertCell().textContent = entry.date;
+      row.insertCell().textContent = entry.vehicle;
+      row.insertCell().textContent = entry.run;
+      row.insertCell().textContent = entry.location;
+      row.insertCell().textContent = entry.arrival;
+      row.insertCell().textContent = entry.booking;
+      row.insertCell().textContent = entry.loading;
+      row.insertCell().textContent = entry.departure;
+      row.insertCell().textContent = entry.specification;
+      row.insertCell().textContent = entry.comment;
     });
   });
 }
 
-filterDate.addEventListener('change', function(){
-  loadTable(this.value);
-});
+// 🔹 Event listeners
+filterDate.addEventListener('change', ()=>loadTable(filterDate.value));
+run.addEventListener('input', ()=>loadTable(filterDate.value));
 
-addEntryBtn.addEventListener('click', function(){
-
+addEntryBtn.addEventListener('click', ()=>{
   const vehicle=vehicle.value.trim();
-  const run=run.value.trim();
+  const runVal=run.value.trim();
   const date=new Date().toISOString().split('T')[0];
   const specification=specification.value;
-  const location=location.value;
-  const arrival=arrival.value;
-  const booking=booking.value;
-  const loading=loading.value;
-  const departure=departure.value;
-  const comment=comment.value.trim();
-
-  if(!vehicle||!run||!location||!specification)
-    return alert("Fill required fields");
-
+  const locationVal=location.value;
+  const arrivalVal=arrival.value;
+  const bookingVal=booking.value;
+  const loadingVal=loading.value;
+  const departureVal=departure.value;
+  const commentVal=comment.value.trim();
+  if(!vehicle||!runVal||!locationVal||!specification) return alert("Fill required fields");
   if(!dailyData[date]) dailyData[date]={};
-  if(!dailyData[date][run]) dailyData[date][run]=[];
-
-  dailyData[date][run].push({date,vehicle,run,location,arrival,booking,loading,departure,specification,comment});
-  localStorage.setItem('dailyData',JSON.stringify(dailyData));
+  if(!dailyData[date][runVal]) dailyData[date][runVal]=[];
+  dailyData[date][runVal].push({
+    date, vehicle, run: runVal, location: locationVal,
+    arrival: arrivalVal, booking: bookingVal, loading: loadingVal,
+    departure: departureVal, specification, comment: commentVal
+  });
+  localStorage.setItem('dailyData', JSON.stringify(dailyData));
   loadTable(date);
 });
 
-function timeToMinutes(t){
-  if(!t) return null;
-  const [h,m]=t.split(":").map(Number);
-  return h*60+m;
-}
+// 🔹 Export Excel with Run + Total Hours + Cost
+sendExcelBtn.addEventListener('click', ()=>{
+  const selectedDate = filterDate.value;
+  const runFilter = run.value.trim();
+  if(!dailyData[selectedDate]) return alert("No data for date");
 
-function roundTo30(mins){
-  let remainder = mins % 30;
-  if(remainder <= 15) return mins - remainder;
-  return mins + (30 - remainder);
-}
+  let arrivals=[], departures=[], rows=[];
 
-sendExcelBtn.addEventListener('click', function(){
-
-  const selectedDate=filterDate.value;
-  if(!dailyData[selectedDate])
-    return alert("No data for date");
-
-  let arrivals=[];
-  let departures=[];
-  let rows=[];
-
-  Object.keys(dailyData[selectedDate]).forEach(run=>{
-    dailyData[selectedDate][run].forEach(entry=>{
+  Object.keys(dailyData[selectedDate]).forEach(runKey=>{
+    if(runFilter && runKey !== runFilter) return;
+    dailyData[selectedDate][runKey].forEach(entry=>{
       rows.push([
-        entry.date,
-        entry.vehicle,
-        entry.run,
-        entry.location,
-        entry.arrival,
-        entry.booking,
-        entry.loading,
-        entry.departure,
-        entry.specification,
-        entry.comment
+        entry.date, entry.vehicle, entry.run, entry.location,
+        entry.arrival, entry.booking, entry.loading, entry.departure,
+        entry.specification, entry.comment
       ]);
-
       if(entry.arrival) arrivals.push(timeToMinutes(entry.arrival));
       if(entry.departure) departures.push(timeToMinutes(entry.departure));
     });
   });
 
-  let totalHours = 0;
+  if(rows.length===0) return alert("No data for selected run/date");
 
+  let totalHours=0;
   if(arrivals.length && departures.length){
     let start=Math.min(...arrivals);
     let end=Math.max(...departures);
-    let duration=end-start;
-    duration=roundTo30(duration);
-    totalHours=duration/60;
+    totalHours = roundTo30(end-start)/60;
   }
-
   let totalCost = totalHours * HOURLY_RATE;
 
   const sheetData = [
@@ -213,15 +202,15 @@ sendExcelBtn.addEventListener('click', function(){
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(sheetData);
-
-  ws["B1"].z = "0.00";
-  ws["B2"].z = "£0.00";
-  ws["B3"].z = "£0.00";
+  ws["B1"].z="0.00"; ws["B2"].z="£0.00"; ws["B3"].z="£0.00";
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Daily Report");
 
-  XLSX.writeFile(wb,"Driver_Report_"+selectedDate+".xlsx");
+  let fileName = "Driver_Report_"+selectedDate;
+  if(runFilter) fileName += "_Run_"+runFilter;
+
+  XLSX.writeFile(wb, fileName+".xlsx");
 });
 </script>
 
