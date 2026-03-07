@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Driver Daily Report</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Driver Daily Report - ARCY</title>
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
@@ -18,19 +18,20 @@ th, td { border:1px solid #888; padding:6px 8px; text-align:center;}
 th { background-color:#eee; }
 .short { width:120px;}
 #alertExcel { margin-top:15px; background-color:#f8d7da; border:1px solid #f5c6cb; color:#721c24; padding:10px; font-weight:bold; }
+.deleteBtn { background-color:#dc3545; color:white; border:none; padding:4px 8px; cursor:pointer; border-radius:3px; }
 </style>
 </head>
 <body>
 
-<h2>Driver Daily Report</h2>
+<h2>Driver Daily Report - ARCY</h2>
 
 <label>Vehicle:</label>
-<input type="text" id="vehicle">
+<input type="text" id="vehicle" />
 
 <label>Run #:</label>
-<input type="text" id="run">
+<input type="text" id="run" />
 
-<hr>
+<hr />
 
 <label>Collection and Delivery Specification:</label>
 <select id="specification">
@@ -71,29 +72,29 @@ th { background-color:#eee; }
   <option value="manual">Other (Manual)</option>
 </select>
 
-<input type="text" id="manualLocation" placeholder="Enter manual location" style="display:none; margin-top:6px; width: 220px;">
+<input type="text" id="manualLocation" placeholder="Enter manual location" style="display:none; margin-top:6px; width: 220px;" />
 
 <label>Arrival Time:</label>
-<input type="time" id="arrival">
+<input type="time" id="arrival" />
 
 <label>Booking Time:</label>
-<input type="time" id="booking">
+<input type="time" id="booking" />
 
 <label>Loading:</label>
-<input type="time" id="loading">
+<input type="time" id="loading" />
 
 <label>Departure:</label>
-<input type="time" id="departure">
+<input type="time" id="departure" />
 
 <label>Comment:</label>
 <textarea id="comment"></textarea>
 
 <button id="addEntryBtn">Add Location</button>
 
-<hr>
+<hr />
 
 <label>Select Date to View / Generate Excel:</label>
-<input type="date" id="filterDate">
+<input type="date" id="filterDate" />
 
 <div id="alertExcel">
 ⚠️ After adding all locations, click <strong>Send Excel</strong> to save report.
@@ -114,6 +115,7 @@ th { background-color:#eee; }
 <th>Departure</th>
 <th>Specification</th>
 <th>Comment</th>
+<th>Action</th>
 </tr>
 </thead>
 <tbody></tbody>
@@ -123,18 +125,18 @@ th { background-color:#eee; }
 const HOURLY_RATE = 37.5;
 let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
 
-// Show/hide manual location input
+// Surse BEN/ATR care nu trebuie afișate în ARCY
+const blockedSources = ["gplgrunsheetBEN","gplgrunsheetATR"];
+
 const locationSelect = document.getElementById('location');
 const manualLocationInput = document.getElementById('manualLocation');
 locationSelect.addEventListener('change', ()=>{
   manualLocationInput.style.display = (locationSelect.value === 'manual') ? 'block' : 'none';
 });
 
-// Utilities
 function timeToMinutes(t){ if(!t) return null; const [h,m]=t.split(":").map(Number); return h*60+m; }
 function roundTo30(mins){ let r=mins%30; return (r<=15)?mins-r:mins+(30-r); }
 
-// Load table with date + run filter
 function loadTable(date = filterDate.value){
   const tbody = document.querySelector("#reportTable tbody");
   tbody.innerHTML = "";
@@ -142,7 +144,9 @@ function loadTable(date = filterDate.value){
   if(!dailyData[date]) return;
   Object.keys(dailyData[date]).forEach(runKey=>{
     if(runFilter && runKey !== runFilter) return;
-    dailyData[date][runKey].forEach(entry=>{
+    dailyData[date][runKey].forEach((entry, idx)=>{
+      if(blockedSources.some(src => entry.location?.includes(src) || entry.comment?.includes(src))) return;
+
       const row = tbody.insertRow();
       row.insertCell().textContent = entry.date;
       row.insertCell().textContent = entry.vehicle;
@@ -154,11 +158,24 @@ function loadTable(date = filterDate.value){
       row.insertCell().textContent = entry.departure;
       row.insertCell().textContent = entry.specification;
       row.insertCell().textContent = entry.comment;
+
+      // Delete button with confirmation pop-up
+      const actionCell = row.insertCell();
+      const delBtn = document.createElement('button');
+      delBtn.textContent = "Delete";
+      delBtn.className = "deleteBtn";
+      delBtn.onclick = ()=>{
+        if(confirm("Sunteți sigur că vreți să ștergeți acest rând?")) {
+          dailyData[date][runKey].splice(idx,1);
+          localStorage.setItem('dailyData', JSON.stringify(dailyData));
+          loadTable(date);
+        }
+      };
+      actionCell.appendChild(delBtn);
     });
   });
 }
 
-// Event listeners
 filterDate.addEventListener('change', ()=>loadTable(filterDate.value));
 run.addEventListener('input', ()=>loadTable(filterDate.value));
 
@@ -185,17 +202,18 @@ addEntryBtn.addEventListener('click', ()=>{
   loadTable(date);
 });
 
-// Export Excel
 sendExcelBtn.addEventListener('click', ()=>{
   const selectedDate = filterDate.value;
   const runFilter = run.value.trim();
   if(!dailyData[selectedDate]) return alert("No data for date");
 
-  let arrivals=[], departures=[], rows=[];
+  let rows=[];
+  let arrivals = [], departures = [];
 
   Object.keys(dailyData[selectedDate]).forEach(runKey=>{
     if(runFilter && runKey !== runFilter) return;
     dailyData[selectedDate][runKey].forEach(entry=>{
+      if(blockedSources.some(src => entry.location?.includes(src) || entry.comment?.includes(src))) return;
       rows.push([
         entry.date, entry.vehicle, entry.run, entry.location,
         entry.arrival, entry.booking, entry.loading, entry.departure,
@@ -208,11 +226,9 @@ sendExcelBtn.addEventListener('click', ()=>{
 
   if(rows.length===0) return alert("No data for selected run/date");
 
-  let totalHours=0;
+  let totalHours = 0;
   if(arrivals.length && departures.length){
-    let start=Math.min(...arrivals);
-    let end=Math.max(...departures);
-    totalHours = roundTo30(end-start)/60;
+    totalHours = roundTo30(Math.max(...departures) - Math.min(...arrivals))/60;
   }
   let totalCost = totalHours * HOURLY_RATE;
 
@@ -231,13 +247,12 @@ sendExcelBtn.addEventListener('click', ()=>{
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Daily Report");
 
-  let fileName = "Driver_Report_"+selectedDate;
-  if(runFilter) fileName += "_Run_"+runFilter;
+  let fileName = `Driver_Report_${selectedDate}`;
+  if(runFilter) fileName += `_Run_${runFilter}`;
 
-  XLSX.writeFile(wb, fileName+".xlsx");
+  XLSX.writeFile(wb, fileName + ".xlsx");
 });
 
-// Initialize
 window.onload = function(){
   filterDate.value = new Date().toISOString().split('T')[0];
   loadTable();
